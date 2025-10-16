@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "modbusAP.h"
+#include "modbusTCP.h"
 #define APDU_max 252 // 1+2+2+1+2*123 = 252    Slide 30 ModbusProtocol - Write multiple registers
 // 1 + 1 + 2 * 125 = 252      Slide 15 Modbus Protocol - Read Multiple registers
 
@@ -52,12 +53,13 @@ int Write_multiple_regs (
         APDU[7 + 2*i] = (uint8_t) val[i];
     }
     APDUlen = 6 + (2*n_r);
+    /*
     for (int i=0; i<APDUlen;i++){
         printf("%2x ",APDU[i]);
     }
-    printf("/n");
-
-    int ret = Send_Modbus_request (server_add,port,APDU,APDUlen,APDU_R);
+    printf("\n");
+    */
+    int ret = Send_Modbus_Request (server_add,port,APDU,APDUlen,APDU_R);
     if ( ret<0){
         //printf("Error sending Modbus Request.\n");
         return -1;
@@ -74,7 +76,8 @@ int Write_multiple_regs (
     if (APDU_R[0] == 0X10){
         return n_r;
     }
-           
+return -1;
+
 }
 int Read_h_regs(
     char* server_add, //server address
@@ -105,7 +108,7 @@ APDU[3] = n_r >> 8; // Podiamos escrever 0x00? já que nunca vamos escrever mais
 APDU[4] = (uint8_t)n_r;
 APDUlen = 5; // pedido tem sempre 5 bytes
 
-response = Send_Modbus_request (server_add,port,APDU,APDUlen,APDU_R);
+response = Send_Modbus_Request (server_add,port,APDU,APDUlen,APDU_R);
 
 // checks the reponse (APDU_R or error_code)
 // returns: number of read registers – ok, <0 – error
@@ -122,10 +125,11 @@ response = Send_Modbus_request (server_add,port,APDU,APDUlen,APDU_R);
 
 //Success cases
     if (APDU_R[0] == 0X03){
-        //Falta escrever em values, perceber a lógica 
         for (int i=0; i<n_r;i++){
-            val[i] = (uint16_t)APDU_R[2+2*i] << 8 + APDU_R[2 +2*i+1];
+            val[i] = ((uint16_t)APDU_R[2 + 2*i] << 8) | APDU_R[2 + 2*i + 1];
+
         }
         return n_r;
     }
+return -1;
 }
